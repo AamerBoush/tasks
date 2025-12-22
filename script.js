@@ -8,7 +8,7 @@ if (!user) {
 }
 
 const USER_ID = user.id;
-const API_URL = "https://insipidly-transdesert-noble.ngrok-free.dev";
+const API_URL = "https://insipidly-transdesert-noble.ngrok-free.dev/";
 
 function addTask(prefill = null) {
   const div = document.createElement("div");
@@ -65,4 +65,5 @@ async function loadTasks() {
 }
 
 loadTasks();
+
 
