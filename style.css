@@ -1,33 +1,37 @@
+:root {
+  --primary: #6366f1;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --radius: 16px;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  font-family: system-ui, sans-serif;
   margin: 0;
-  background: #f4f6f8;
-  color: #222;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
 }
 
 header {
-  padding: 16px;
-  background: #0f172a;
+  padding: 18px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
   color: white;
-}
-
-header h1 {
-  margin: 0;
-}
-
-#balance {
-  font-size: 14px;
-  opacity: 0.9;
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
 }
 
 .tabs {
   display: flex;
-  background: white;
-  border-bottom: 1px solid #ddd;
+  margin: 10px;
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .tabs button {
@@ -36,11 +40,12 @@ header h1 {
   border: none;
   background: none;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .tabs button.active {
-  border-bottom: 3px solid #2563eb;
-  color: #2563eb;
+  background: var(--primary);
+  color: white;
 }
 
 main {
@@ -48,52 +53,35 @@ main {
 }
 
 .card {
-  background: white;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
 }
 
 .card small {
-  color: #666;
-}
-
-.card .actions {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-.card button {
-  padding: 6px 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.card .danger {
-  background: #ef4444;
-  color: white;
+  color: var(--muted);
 }
 
 .fab {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 56px;
-  height: 56px;
+  bottom: 22px;
+  right: 22px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  font-size: 32px;
-  background: #2563eb;
+  background: var(--primary);
   color: white;
+  font-size: 32px;
   border: none;
+  cursor: pointer;
 }
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,26 +91,41 @@ main {
   display: none;
 }
 
-.modal-content {
+.modal-box {
   background: white;
-  border-radius: 12px;
-  padding: 16px;
-  width: 90%;
+  border-radius: var(--radius);
+  padding: 18px;
+  width: 92%;
   max-width: 420px;
 }
 
-.grid {
+#task-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.actions {
-  margin-top: 12px;
-  display: flex;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
-.actions .secondary {
+input, select {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  font-size: 15px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.secondary {
   background: #e5e7eb;
 }

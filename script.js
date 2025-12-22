@@ -1,31 +1,61 @@
 const tg = Telegram.WebApp;
 tg.ready();
 
-const user = tg.initDataUnsafe.user;
-const USER_ID = user.id;
+const USER_ID = tg.initDataUnsafe.user.id;
 const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; 
 
 let currentTab = "pending";
+let config = null;
 
-// ---------------- UI ----------------
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
-  loadTasks();
+// ---------- Load Config ----------
+async function loadConfig() {
+  const res = await fetch("config.json");
+  config = await res.json();
+  buildForm();
 }
 
-function openModal() {
-  document.getElementById("modal").classList.remove("hidden");
+// ---------- Build Form ----------
+function buildForm() {
+  const form = document.getElementById("task-form");
+  form.innerHTML = "";
+
+  config.form.fields.forEach(f => {
+    const input = document.createElement("input");
+    input.placeholder = f.placeholder;
+    input.dataset.field = f.id;
+    form.appendChild(input);
+  });
+
+  config.form.dropdowns.forEach(d => {
+    const select = document.createElement("select");
+    d.options.forEach(opt => {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      select.appendChild(o);
+    });
+    form.appendChild(select);
+  });
 }
 
-function closeModal() {
-  document.getElementById("modal").classList.add("hidden");
-}
+// ---------- Tabs ----------
+document.querySelectorAll(".tabs button").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentTab = btn.dataset.tab;
+    loadTasks();
+  };
+});
 
-// ---------------- Load Tasks ----------------
+// ---------- Modal ----------
+document.querySelector(".fab").onclick = () =>
+  document.querySelector(".modal").classList.remove("hidden");
 
+document.getElementById("cancel").onclick = () =>
+  document.querySelector(".modal").classList.add("hidden");
+
+// ---------- Load Tasks ----------
 async function loadTasks() {
   const res = await fetch(`${API}/tasks/${USER_ID}/${currentTab}`);
   const tasks = await res.json();
@@ -33,7 +63,7 @@ async function loadTasks() {
   const list = document.getElementById("task-list");
   list.innerHTML = "";
 
-  if (tasks.length === 0) {
+  if (!tasks.length) {
     list.innerHTML = "<p>لا توجد مهمات</p>";
     return;
   }
@@ -41,25 +71,19 @@ async function loadTasks() {
   tasks.forEach(t => {
     const div = document.createElement("div");
     div.className = "card";
-
     div.innerHTML = `
-      <b>مهمة</b>
-      <small>${new Date(t.created_at).toLocaleString()}</small>
-      <div class="actions">
-        <button class="danger" onclick="deleteTask('${t.task_id}')">حذف</button>
-      </div>
+      <b>${t.fields[0]}</b>
+      <p>${t.fields[1]}</p>
+      <small>${t.dropdowns.join(" • ")}</small>
     `;
-
     list.appendChild(div);
   });
 }
 
-// ---------------- Create Task ----------------
-
-async function createTask() {
-  const modal = document.querySelector(".modal-content");
-  const inputs = modal.querySelectorAll("input");
-  const selects = modal.querySelectorAll("select");
+// ---------- Create Task ----------
+document.getElementById("submit").onclick = async () => {
+  const inputs = document.querySelectorAll("#task-form input");
+  const selects = document.querySelectorAll("#task-form select");
 
   const payload = {
     user_id: USER_ID,
@@ -74,21 +98,14 @@ async function createTask() {
   });
 
   if (!res.ok) {
-    alert("لا يمكن إنشاء المهمة (نقاط غير كافية)");
+    alert("لا يمكن إنشاء المهمة");
     return;
   }
 
-  closeModal();
+  document.querySelector(".modal").classList.add("hidden");
   loadTasks();
-}
+};
 
-// ---------------- Delete ----------------
-
-async function deleteTask(id) {
-  if (!confirm("حذف المهمة؟")) return;
-  await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
-  loadTasks();
-}
-
-// ---------------- Init ----------------
+// ---------- Init ----------
+loadConfig();
 loadTasks();
