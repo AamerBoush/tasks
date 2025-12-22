@@ -2,69 +2,116 @@ const tg = Telegram.WebApp;
 tg.ready();
 
 const user = tg.initDataUnsafe.user;
+const USER_ID = user.id;
 
-if (!user) {
-  alert("Telegram user not detected");
+const API = "https://insipidly-transdesert-noble.ngrok-free.dev";    // بدون /tasks
+
+// ---------------- Tabs ----------------
+
+function showTab(name) {
+  document.getElementById("pending").classList.add("hidden");
+  document.getElementById("failed").classList.add("hidden");
+  document.getElementById(name).classList.remove("hidden");
+
+  loadTasks(name);
 }
 
-const USER_ID = user.id;
-const API_URL = "https://insipidly-transdesert-noble.ngrok-free.dev/tasks";
+// ---------------- Load Tasks ----------------
 
-function addTask(prefill = null) {
+async function loadTasks(status) {
+  const container = document.getElementById(status);
+  container.innerHTML = "تحميل...";
+
+  const res = await fetch(`${API}/tasks/${USER_ID}/${status}`);
+  const tasks = await res.json();
+
+  container.innerHTML = "";
+
+  tasks.forEach(task => {
+    const div = document.createElement("div");
+    div.className = "task";
+
+    div.innerHTML = `
+      <b>ID:</b> ${task.task_id}<br>
+      <b>Status:</b> ${task.status}<br>
+      <button onclick="deleteTask('${task.task_id}')">🗑️ حذف</button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+// ---------------- Delete Task ----------------
+
+async function deleteTask(taskId) {
+  if (!confirm("هل أنت متأكد؟")) return;
+
+  await fetch(`${API}/tasks/${taskId}`, {
+    method: "DELETE"
+  });
+
+  showTab("pending");
+}
+
+// ---------------- New Task Form ----------------
+
+function addTaskForm() {
   const div = document.createElement("div");
   div.className = "task";
 
   let html = "";
-
   for (let i = 0; i < 6; i++) {
-    html += `<input placeholder="Field ${i+1}" value="${prefill?.fields?.[i] || ""}"><br>`;
+    html += `<input placeholder="حقل ${i+1}"><br>`;
   }
 
   for (let i = 0; i < 4; i++) {
     html += `
       <select>
-        <option ${prefill?.dropdowns?.[i] === "A" ? "selected" : ""}>A</option>
-        <option ${prefill?.dropdowns?.[i] === "B" ? "selected" : ""}>B</option>
-        <option ${prefill?.dropdowns?.[i] === "C" ? "selected" : ""}>C</option>
+        <option>A</option>
+        <option>B</option>
+        <option>C</option>
       </select><br>
     `;
   }
 
   div.innerHTML = html;
-  document.getElementById("tasks").appendChild(div);
+  document.getElementById("new-task").appendChild(div);
 }
 
-async function saveTasks() {
-  const elements = document.querySelectorAll(".task");
+// ---------------- Create Task ----------------
 
-  for (const el of elements) {
-    const inputs = el.querySelectorAll("input");
-    const selects = el.querySelectorAll("select");
-
-    const payload = {
-      user_id: USER_ID,
-      fields: Array.from(inputs).map(i => i.value),
-      dropdowns: Array.from(selects).map(s => s.value)
-    };
-
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+async function createTask() {
+  const task = document.querySelector("#new-task .task");
+  if (!task) {
+    alert("أضف مهمة أولاً");
+    return;
   }
 
-  alert("Tasks saved!");
+  const inputs = task.querySelectorAll("input");
+  const selects = task.querySelectorAll("select");
+
+  const payload = {
+    user_id: USER_ID,
+    fields: Array.from(inputs).map(i => i.value),
+    dropdowns: Array.from(selects).map(s => s.value)
+  };
+
+  const res = await fetch(`${API}/tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.detail || "فشل إنشاء المهمة (نقاط غير كافية)");
+    return;
+  }
+
+  document.getElementById("new-task").innerHTML = "";
+  showTab("pending");
 }
 
-async function loadTasks() {
-  const res = await fetch(`${API_URL}/${USER_ID}`);
-  const data = await res.json();
+// ---------------- Init ----------------
 
-  data.tasks.forEach(task => addTask(task));
-}
-
-loadTasks();
-
-
-
+showTab("pending");

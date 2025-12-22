@@ -3,6 +3,18 @@ body {
   padding: 15px;
 }
 
+.tabs button {
+  margin-right: 5px;
+}
+
+.tab {
+  margin-top: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
 .task {
   border: 1px solid #ccc;
   padding: 10px;

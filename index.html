@@ -8,12 +8,22 @@
 </head>
 <body>
 
-<h2>My Tasks</h2>
+<h2>Task Manager</h2>
 
-<div id="tasks"></div>
+<div class="tabs">
+  <button onclick="showTab('pending')">جاري الإنجاز</button>
+  <button onclick="showTab('failed')">مهمات فاشلة</button>
+</div>
 
-<button onclick="addTask()">➕ Add Task</button>
-<button onclick="saveTasks()">💾 Save</button>
+<div id="pending" class="tab"></div>
+<div id="failed" class="tab hidden"></div>
+
+<hr>
+
+<h3>إضافة مهمة جديدة</h3>
+<div id="new-task"></div>
+<button onclick="addTaskForm()">➕ إضافة سطر</button>
+<button onclick="createTask()">🚀 إنشاء المهمة</button>
 
 <script src="script.js"></script>
 </body>
