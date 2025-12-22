@@ -3,92 +3,63 @@ tg.ready();
 
 const user = tg.initDataUnsafe.user;
 const USER_ID = user.id;
+const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; 
 
-const API = "https://insipidly-transdesert-noble.ngrok-free.dev";    // بدون /tasks
+let currentTab = "pending";
 
-// ---------------- Tabs ----------------
+// ---------------- UI ----------------
 
-function showTab(name) {
-  document.getElementById("pending").classList.add("hidden");
-  document.getElementById("failed").classList.add("hidden");
-  document.getElementById(name).classList.remove("hidden");
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  loadTasks();
+}
 
-  loadTasks(name);
+function openModal() {
+  document.getElementById("modal").classList.remove("hidden");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.add("hidden");
 }
 
 // ---------------- Load Tasks ----------------
 
-async function loadTasks(status) {
-  const container = document.getElementById(status);
-  container.innerHTML = "تحميل...";
-
-  const res = await fetch(`${API}/tasks/${USER_ID}/${status}`);
+async function loadTasks() {
+  const res = await fetch(`${API}/tasks/${USER_ID}/${currentTab}`);
   const tasks = await res.json();
 
-  container.innerHTML = "";
+  const list = document.getElementById("task-list");
+  list.innerHTML = "";
 
-  tasks.forEach(task => {
+  if (tasks.length === 0) {
+    list.innerHTML = "<p>لا توجد مهمات</p>";
+    return;
+  }
+
+  tasks.forEach(t => {
     const div = document.createElement("div");
-    div.className = "task";
+    div.className = "card";
 
     div.innerHTML = `
-      <b>ID:</b> ${task.task_id}<br>
-      <b>Status:</b> ${task.status}<br>
-      <button onclick="deleteTask('${task.task_id}')">🗑️ حذف</button>
+      <b>مهمة</b>
+      <small>${new Date(t.created_at).toLocaleString()}</small>
+      <div class="actions">
+        <button class="danger" onclick="deleteTask('${t.task_id}')">حذف</button>
+      </div>
     `;
 
-    container.appendChild(div);
+    list.appendChild(div);
   });
-}
-
-// ---------------- Delete Task ----------------
-
-async function deleteTask(taskId) {
-  if (!confirm("هل أنت متأكد؟")) return;
-
-  await fetch(`${API}/tasks/${taskId}`, {
-    method: "DELETE"
-  });
-
-  showTab("pending");
-}
-
-// ---------------- New Task Form ----------------
-
-function addTaskForm() {
-  const div = document.createElement("div");
-  div.className = "task";
-
-  let html = "";
-  for (let i = 0; i < 6; i++) {
-    html += `<input placeholder="حقل ${i+1}"><br>`;
-  }
-
-  for (let i = 0; i < 4; i++) {
-    html += `
-      <select>
-        <option>A</option>
-        <option>B</option>
-        <option>C</option>
-      </select><br>
-    `;
-  }
-
-  div.innerHTML = html;
-  document.getElementById("new-task").appendChild(div);
 }
 
 // ---------------- Create Task ----------------
 
 async function createTask() {
-  const task = document.querySelector("#new-task .task");
-  if (!task) {
-    alert("أضف مهمة أولاً");
-    return;
-  }
-
-  const inputs = task.querySelectorAll("input");
-  const selects = task.querySelectorAll("select");
+  const modal = document.querySelector(".modal-content");
+  const inputs = modal.querySelectorAll("input");
+  const selects = modal.querySelectorAll("select");
 
   const payload = {
     user_id: USER_ID,
@@ -103,15 +74,21 @@ async function createTask() {
   });
 
   if (!res.ok) {
-    const err = await res.json();
-    alert(err.detail || "فشل إنشاء المهمة (نقاط غير كافية)");
+    alert("لا يمكن إنشاء المهمة (نقاط غير كافية)");
     return;
   }
 
-  document.getElementById("new-task").innerHTML = "";
-  showTab("pending");
+  closeModal();
+  loadTasks();
+}
+
+// ---------------- Delete ----------------
+
+async function deleteTask(id) {
+  if (!confirm("حذف المهمة؟")) return;
+  await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
+  loadTasks();
 }
 
 // ---------------- Init ----------------
-
-showTab("pending");
+loadTasks();

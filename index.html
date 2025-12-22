@@ -1,29 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>Telegram Task App</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Task Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
-<h2>Task Manager</h2>
+<header>
+  <h1>📋 Task Manager</h1>
+  <div id="balance">...</div>
+</header>
 
-<div class="tabs">
-  <button onclick="showTab('pending')">جاري الإنجاز</button>
-  <button onclick="showTab('failed')">مهمات فاشلة</button>
+<nav class="tabs">
+  <button class="active" onclick="switchTab('pending')">جاري الإنجاز</button>
+  <button onclick="switchTab('completed')">منجزة</button>
+  <button onclick="switchTab('failed')">فاشلة</button>
+</nav>
+
+<main id="task-list"></main>
+
+<button class="fab" onclick="openModal()">＋</button>
+
+<!-- Modal -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>إضافة مهمة جديدة</h3>
+
+    <div class="grid">
+      <input placeholder="العنوان" />
+      <input placeholder="الوصف" />
+      <input placeholder="ملاحظة 1" />
+      <input placeholder="ملاحظة 2" />
+      <input placeholder="ملاحظة 3" />
+      <input placeholder="ملاحظة 4" />
+
+      <select><option>A</option><option>B</option><option>C</option></select>
+      <select><option>A</option><option>B</option><option>C</option></select>
+      <select><option>A</option><option>B</option><option>C</option></select>
+      <select><option>A</option><option>B</option><option>C</option></select>
+    </div>
+
+    <div class="actions">
+      <button onclick="createTask()">إنشاء</button>
+      <button class="secondary" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
 </div>
-
-<div id="pending" class="tab"></div>
-<div id="failed" class="tab hidden"></div>
-
-<hr>
-
-<h3>إضافة مهمة جديدة</h3>
-<div id="new-task"></div>
-<button onclick="addTaskForm()">➕ إضافة سطر</button>
-<button onclick="createTask()">🚀 إنشاء المهمة</button>
 
 <script src="script.js"></script>
 </body>

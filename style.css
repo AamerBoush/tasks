@@ -1,22 +1,128 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 15px;
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f4f6f8;
+  color: #222;
+}
+
+header {
+  padding: 16px;
+  background: #0f172a;
+  color: white;
+}
+
+header h1 {
+  margin: 0;
+}
+
+#balance {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid #ddd;
 }
 
 .tabs button {
-  margin-right: 5px;
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: none;
+  font-weight: 600;
 }
 
-.tab {
+.tabs button.active {
+  border-bottom: 3px solid #2563eb;
+  color: #2563eb;
+}
+
+main {
+  padding: 12px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.card small {
+  color: #666;
+}
+
+.card .actions {
   margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.card button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.card .danger {
+  background: #ef4444;
+  color: white;
+}
+
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 32px;
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hidden {
   display: none;
 }
 
-.task {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  width: 90%;
+  max-width: 420px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.actions .secondary {
+  background: #e5e7eb;
 }
