@@ -4,12 +4,10 @@
   --card: #ffffff;
   --text: #0f172a;
   --muted: #64748b;
-  --radius: 16px;
+  --radius: 18px;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -19,6 +17,9 @@ body {
 }
 
 header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 18px;
   background: linear-gradient(135deg, #6366f1, #818cf8);
   color: white;
@@ -26,10 +27,25 @@ header {
   border-bottom-right-radius: var(--radius);
 }
 
+#balance {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+#add-btn {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: none;
+  background: white;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .tabs {
   display: flex;
-  margin: 10px;
-  background: var(--card);
+  margin: 12px;
+  background: white;
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -57,39 +73,36 @@ main {
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+
+.card h4 {
+  margin: 0 0 6px 0;
+}
+
+.card p {
+  margin: 0 0 8px 0;
 }
 
 .card small {
   color: var(--muted);
 }
 
-.fab {
-  position: fixed;
-  bottom: 22px;
-  right: 22px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  font-size: 32px;
-  border: none;
-  cursor: pointer;
+.fail {
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.4);
+  background: rgba(0,0,0,.45);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 .modal-box {
   background: white;
@@ -101,15 +114,14 @@ main {
 
 #task-form {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 10px;
+  margin-top: 10px;
 }
 
 input, select {
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #e5e7eb;
-  font-size: 15px;
 }
 
 .actions {
@@ -121,7 +133,7 @@ input, select {
 .actions button {
   flex: 1;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
 }

@@ -2,9 +2,9 @@ const tg = Telegram.WebApp;
 tg.ready();
 
 const USER_ID = tg.initDataUnsafe.user.id;
-const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; 
+const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; // بدون /tasks
 
-let currentTab = "pending";
+let currentStatus = "pending";
 let config = null;
 
 // ---------- Load Config ----------
@@ -22,12 +22,13 @@ function buildForm() {
   config.form.fields.forEach(f => {
     const input = document.createElement("input");
     input.placeholder = f.placeholder;
-    input.dataset.field = f.id;
+    input.dataset.type = "field";
     form.appendChild(input);
   });
 
   config.form.dropdowns.forEach(d => {
     const select = document.createElement("select");
+    select.dataset.type = "dropdown";
     d.options.forEach(opt => {
       const o = document.createElement("option");
       o.value = opt;
@@ -38,29 +39,33 @@ function buildForm() {
   });
 }
 
+// ---------- Balance ----------
+async function loadBalance() {
+  const res = await fetch(`${API}/account/${USER_ID}`);
+  const data = await res.json();
+
+  document.getElementById("balance").innerText =
+    `النقاط: ${data.points} | مجمدة: ${data.frozen_points}`;
+}
+
 // ---------- Tabs ----------
 document.querySelectorAll(".tabs button").forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    currentTab = btn.dataset.tab;
+    currentStatus = btn.dataset.status;
     loadTasks();
   };
 });
 
-// ---------- Modal ----------
-document.querySelector(".fab").onclick = () =>
-  document.querySelector(".modal").classList.remove("hidden");
-
-document.getElementById("cancel").onclick = () =>
-  document.querySelector(".modal").classList.add("hidden");
-
 // ---------- Load Tasks ----------
 async function loadTasks() {
-  const res = await fetch(`${API}/tasks/${USER_ID}/${currentTab}`);
+  const list = document.getElementById("task-list");
+  list.innerHTML = "جارٍ التحميل...";
+
+  const res = await fetch(`${API}/tasks/${USER_ID}?status=${currentStatus}`);
   const tasks = await res.json();
 
-  const list = document.getElementById("task-list");
   list.innerHTML = "";
 
   if (!tasks.length) {
@@ -71,41 +76,62 @@ async function loadTasks() {
   tasks.forEach(t => {
     const div = document.createElement("div");
     div.className = "card";
+
+    let failNote = "";
+    if (t.status === "failed" && t.fail_reason) {
+      failNote = `<p class="fail">سبب الفشل: ${t.fail_reason}</p>`;
+    }
+
     div.innerHTML = `
-      <b>${t.fields[0]}</b>
+      <h4>${t.fields[0]}</h4>
       <p>${t.fields[1]}</p>
       <small>${t.dropdowns.join(" • ")}</small>
+      ${failNote}
     `;
+
     list.appendChild(div);
   });
 }
 
+// ---------- Modal ----------
+document.getElementById("add-btn").onclick = () =>
+  document.getElementById("modal").classList.remove("hidden");
+
+document.getElementById("cancel").onclick = () =>
+  document.getElementById("modal").classList.add("hidden");
+
 // ---------- Create Task ----------
 document.getElementById("submit").onclick = async () => {
-  const inputs = document.querySelectorAll("#task-form input");
-  const selects = document.querySelectorAll("#task-form select");
+  const fields = Array.from(document.querySelectorAll('[data-type="field"]')).map(i => i.value);
+  const dropdowns = Array.from(document.querySelectorAll('[data-type="dropdown"]')).map(s => s.value);
 
-  const payload = {
-    user_id: USER_ID,
-    fields: Array.from(inputs).map(i => i.value),
-    dropdowns: Array.from(selects).map(s => s.value)
-  };
+  if (fields.some(v => !v)) {
+    alert("يرجى تعبئة جميع الحقول");
+    return;
+  }
 
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      user_id: USER_ID,
+      fields,
+      dropdowns
+    })
   });
 
   if (!res.ok) {
-    alert("لا يمكن إنشاء المهمة");
+    const err = await res.json();
+    alert(err.detail || "فشل إنشاء المهمة");
     return;
   }
 
-  document.querySelector(".modal").classList.add("hidden");
+  document.getElementById("modal").classList.add("hidden");
+  loadBalance();
   loadTasks();
 };
 
 // ---------- Init ----------
 loadConfig();
+loadBalance();
 loadTasks();

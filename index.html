@@ -10,24 +10,25 @@
 <body>
 
 <header>
-  <h1>Task Manager</h1>
-  <span id="balance">—</span>
+  <div>
+    <h1>Task Manager</h1>
+    <div id="balance">—</div>
+  </div>
+  <button id="add-btn">＋ إضافة مهمة</button>
 </header>
 
 <nav class="tabs">
-  <button class="active" data-tab="pending">جاري الإنجاز</button>
-  <button data-tab="completed">منجزة</button>
-  <button data-tab="failed">فاشلة</button>
+  <button class="active" data-status="pending">جاري الإنجاز</button>
+  <button data-status="completed">منجزة</button>
+  <button data-status="failed">فاشلة</button>
 </nav>
 
 <main id="task-list"></main>
 
-<button class="fab">＋</button>
-
 <!-- Modal -->
-<div class="modal hidden">
+<div id="modal" class="modal hidden">
   <div class="modal-box">
-    <h3>إضافة مهمة</h3>
+    <h3>إضافة مهمة جديدة</h3>
     <form id="task-form"></form>
 
     <div class="actions">

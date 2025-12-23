@@ -1,14 +1,8 @@
 {
   "form": {
     "fields": [
-      {
-        "id": "title",
-        "placeholder": "عنوان المهمة"
-      },
-      {
-        "id": "description",
-        "placeholder": "وصف المهمة"
-      }
+      { "id": "title", "placeholder": "عنوان المهمة" },
+      { "id": "description", "placeholder": "وصف المهمة" }
     ],
     "dropdowns": [
       {
