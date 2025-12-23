@@ -1,34 +1,49 @@
+/**********************************************************
+ * Telegram WebApp Init
+ **********************************************************/
 const tg = Telegram.WebApp;
 tg.ready();
 
 if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-  alert("يجب فتح التطبيق من داخل Telegram");
-  throw new Error("No Telegram user");
+  alert("❌ يجب فتح التطبيق من داخل Telegram عبر زر البوت");
+  throw new Error("Telegram user not found");
 }
 
 const USER_ID = Number(tg.initDataUnsafe.user.id);
-const API = "https://insipidly-transdesert-noble.ngrok-free.dev";
+const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; // بدون /
 
-console.log("USER_ID:", USER_ID);
+console.log("✅ USER_ID:", USER_ID);
+console.log("🌐 API:", API);
 
-
-
-
+/**********************************************************
+ * Global State
+ **********************************************************/
 let currentStatus = "pending";
 let config = null;
 
-// ---------- Load Config ----------
+/**********************************************************
+ * Load Config (form structure)
+ **********************************************************/
 async function loadConfig() {
-  const res = await fetch("config.json");
-  config = await res.json();
-  buildForm();
+  try {
+    const res = await fetch("config.json");
+    if (!res.ok) throw new Error("Failed to load config.json");
+    config = await res.json();
+    buildForm();
+  } catch (err) {
+    console.error("Config error:", err);
+    alert("❌ فشل تحميل إعدادات النموذج");
+  }
 }
 
-// ---------- Build Form ----------
+/**********************************************************
+ * Build Form Dynamically
+ **********************************************************/
 function buildForm() {
   const form = document.getElementById("task-form");
   form.innerHTML = "";
 
+  // Fields
   config.form.fields.forEach(f => {
     const input = document.createElement("input");
     input.placeholder = f.placeholder;
@@ -36,112 +51,163 @@ function buildForm() {
     form.appendChild(input);
   });
 
+  // Dropdowns
   config.form.dropdowns.forEach(d => {
     const select = document.createElement("select");
     select.dataset.type = "dropdown";
+
     d.options.forEach(opt => {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      select.appendChild(o);
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = opt;
+      select.appendChild(option);
     });
+
     form.appendChild(select);
   });
 }
 
-// ---------- Balance ----------
+/**********************************************************
+ * Load Account Balance
+ **********************************************************/
 async function loadBalance() {
-  const res = await fetch(`${API}/account/${USER_ID}`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API}/account/${USER_ID}`);
+    if (!res.ok) throw new Error("Failed to load account");
 
-  document.getElementById("balance").innerText =
-    `النقاط: ${data.points} | مجمدة: ${data.frozen_points}`;
+    const data = await res.json();
+    document.getElementById("balance").innerText =
+      `النقاط: ${data.points} | مجمدة: ${data.frozen_points}`;
+  } catch (err) {
+    console.error("Balance error:", err);
+    document.getElementById("balance").innerText = "خطأ في جلب الرصيد";
+  }
 }
 
-// ---------- Tabs ----------
+/**********************************************************
+ * Tabs Handling
+ **********************************************************/
 document.querySelectorAll(".tabs button").forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tabs button")
+      .forEach(b => b.classList.remove("active"));
+
     btn.classList.add("active");
     currentStatus = btn.dataset.status;
     loadTasks();
-  };
+  });
 });
 
-// ---------- Load Tasks ----------
+/**********************************************************
+ * Load Tasks (per user + status)
+ **********************************************************/
 async function loadTasks() {
   const list = document.getElementById("task-list");
   list.innerHTML = "جارٍ التحميل...";
 
-  const res = await fetch(`${API}/tasks/${USER_ID}?status=${currentStatus}`);
-  const tasks = await res.json();
+  try {
+    const res = await fetch(
+      `${API}/tasks/${USER_ID}?status=${encodeURIComponent(currentStatus)}`
+    );
 
-  list.innerHTML = "";
+    if (!res.ok) throw new Error("Failed to load tasks");
 
-  if (!tasks.length) {
-    list.innerHTML = "<p>لا توجد مهمات</p>";
-    return;
-  }
+    const tasks = await res.json();
+    console.log("📦 TASKS:", tasks);
 
-  tasks.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "card";
+    list.innerHTML = "";
 
-    let failNote = "";
-    if (t.status === "failed" && t.fail_reason) {
-      failNote = `<p class="fail">سبب الفشل: ${t.fail_reason}</p>`;
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      list.innerHTML = "<p>لا توجد مهمات</p>";
+      return;
     }
 
-    div.innerHTML = `
-      <h4>${t.fields[0]}</h4>
-      <p>${t.fields[1]}</p>
-      <small>${t.dropdowns.join(" • ")}</small>
-      ${failNote}
-    `;
+    tasks.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "card";
 
-    list.appendChild(div);
-  });
+      let failNote = "";
+      if (t.status === "failed" && t.fail_reason) {
+        failNote = `<p class="fail">سبب الفشل: ${t.fail_reason}</p>`;
+      }
+
+      card.innerHTML = `
+        <h4>${t.fields[0]}</h4>
+        <p>${t.fields[1]}</p>
+        <small>${t.dropdowns.join(" • ")}</small>
+        ${failNote}
+      `;
+
+      list.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("Tasks error:", err);
+    list.innerHTML = "<p>❌ خطأ في جلب المهمات</p>";
+  }
 }
 
-// ---------- Modal ----------
-document.getElementById("add-btn").onclick = () =>
+/**********************************************************
+ * Modal Controls
+ **********************************************************/
+document.getElementById("add-btn").addEventListener("click", () => {
   document.getElementById("modal").classList.remove("hidden");
+});
 
-document.getElementById("cancel").onclick = () =>
+document.getElementById("cancel").addEventListener("click", () => {
   document.getElementById("modal").classList.add("hidden");
+});
 
-// ---------- Create Task ----------
-document.getElementById("submit").onclick = async () => {
-  const fields = Array.from(document.querySelectorAll('[data-type="field"]')).map(i => i.value);
-  const dropdowns = Array.from(document.querySelectorAll('[data-type="dropdown"]')).map(s => s.value);
+/**********************************************************
+ * Create Task
+ **********************************************************/
+document.getElementById("submit").addEventListener("click", async () => {
+  const fields = Array.from(
+    document.querySelectorAll('[data-type="field"]')
+  ).map(i => i.value.trim());
+
+  const dropdowns = Array.from(
+    document.querySelectorAll('[data-type="dropdown"]')
+  ).map(s => s.value);
 
   if (fields.some(v => !v)) {
-    alert("يرجى تعبئة جميع الحقول");
+    alert("❌ يرجى تعبئة جميع الحقول");
     return;
   }
 
-  const res = await fetch(`${API}/tasks`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: USER_ID,
-      fields,
-      dropdowns
-    })
-  });
+  try {
+    const res = await fetch(`${API}/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: USER_ID,
+        fields,
+        dropdowns
+      })
+    });
 
-  if (!res.ok) {
-    const err = await res.json();
-    alert(err.detail || "فشل إنشاء المهمة");
-    return;
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.detail || "فشل إنشاء المهمة");
+      return;
+    }
+
+    // Success
+    document.getElementById("modal").classList.add("hidden");
+    loadBalance();
+    loadTasks();
+
+  } catch (err) {
+    console.error("Create task error:", err);
+    alert("❌ خطأ في إنشاء المهمة");
   }
+});
 
-  document.getElementById("modal").classList.add("hidden");
-  loadBalance();
-  loadTasks();
-};
-
-// ---------- Init ----------
-loadConfig();
-loadBalance();
-loadTasks();
+/**********************************************************
+ * Init
+ **********************************************************/
+(async function init() {
+  await loadConfig();
+  await loadBalance();
+  await loadTasks();
+})();
