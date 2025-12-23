@@ -12,9 +12,21 @@
 <header>
   <div>
     <h1>Task Manager</h1>
-    <div id="balance">—</div>
+
+    <!-- Balance -->
+    <div id="balance">
+      <div class="bal">
+        <small>الرصيد</small>
+        <span id="points">0</span>
+      </div>
+      <div class="bal frozen">
+        <small>المجمد</small>
+        <span id="frozen">0</span>
+      </div>
+    </div>
   </div>
-  <button id="add-btn">＋ إضافة مهمة</button>
+
+  <button id="add-btn" type="button">＋ إضافة مهمة</button>
 </header>
 
 <nav class="tabs">
@@ -29,11 +41,14 @@
 <div id="modal" class="modal hidden">
   <div class="modal-box">
     <h3>إضافة مهمة جديدة</h3>
-    <form id="task-form"></form>
+
+    <!-- form is ONLY container -->
+    <form id="task-form" onsubmit="return false;"></form>
 
     <div class="actions">
-      <button id="submit">إنشاء</button>
-      <button type="button" class="secondary" id="cancel">إلغاء</button>
+      <!-- 🔴 مهم: type="button" -->
+      <button id="submit" type="button">إنشاء</button>
+      <button id="cancel" type="button" class="secondary">إلغاء</button>
     </div>
   </div>
 </div>

@@ -141,3 +141,48 @@ input, select {
 .secondary {
   background: #e5e7eb;
 }
+/* ===== Balance Enhancements ===== */
+
+#balance {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+#balance .bal {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+#balance .bal small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+#balance .bal span {
+  font-size: 15px;
+  font-weight: 700;
+  color: #22c55e; /* أخضر */
+}
+
+#balance .bal.frozen span {
+  color: #f59e0b; /* برتقالي */
+}
+
+/* ===== Card Actions ===== */
+
+.card button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card button:hover {
+  background: #fecaca;
+}
