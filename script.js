@@ -3,7 +3,30 @@ tg.ready();
 
 const API = "https://insipidly-transdesert-noble.ngrok-free.dev";
 
-// ================= Helper =================
+// ---------- DOM ----------
+const el = {
+  points: document.getElementById("points"),
+  frozen: document.getElementById("frozen"),
+  taskList: document.getElementById("task-list"),
+  modal: document.getElementById("modal"),
+  taskForm: document.getElementById("task-form"),
+  notice: document.getElementById("notice"),
+  addBtn: document.getElementById("add-btn"),
+  submitBtn: document.getElementById("submit"),
+  cancelBtn: document.getElementById("cancel"),
+  tabButtons: Array.from(document.querySelectorAll(".tabs button")),
+};
+
+// ---------- Helper: quiet notice ----------
+let noticeTimer = null;
+function showNotice(message) {
+  el.notice.textContent = message;
+  el.notice.classList.remove("hidden");
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => el.notice.classList.add("hidden"), 3500);
+}
+
+// ---------- Helper: API ----------
 async function api(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     method: options.method || "GET",
@@ -16,42 +39,41 @@ async function api(path, options = {}) {
   });
 
   const text = await res.text();
+
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch {}
 
   if (!res.ok) {
-    const msg = data.detail || text || "خطأ غير معروف";
+    const msg = data.detail || text || "Request failed";
     throw new Error(msg);
   }
-
   return data;
 }
 
-// ================= State =================
+// ---------- State ----------
 let currentStatus = "pending";
 let formConfig = null;
 
-// ================= Load Config =================
+// ---------- Load config & build form ----------
 async function loadConfig() {
-  const res = await fetch("config.json");
+  const res = await fetch("config.json", { cache: "no-store" });
+  if (!res.ok) throw new Error("config.json not found");
   formConfig = await res.json();
   buildForm();
 }
 
-// ================= Build Form =================
 function buildForm() {
-  const form = document.getElementById("task-form");
-  form.innerHTML = "";
+  el.taskForm.innerHTML = "";
 
-  // حقول نصية
+  // fields (2 inputs)
   formConfig.form.fields.forEach(f => {
     const input = document.createElement("input");
     input.placeholder = f.placeholder;
     input.dataset.type = "field";
-    form.appendChild(input);
+    el.taskForm.appendChild(input);
   });
 
-  // قوائم منسدلة
+  // dropdowns (4 selects)
   formConfig.form.dropdowns.forEach(d => {
     const select = document.createElement("select");
     select.dataset.type = "dropdown";
@@ -63,119 +85,124 @@ function buildForm() {
       select.appendChild(o);
     });
 
-    form.appendChild(select);
+    el.taskForm.appendChild(select);
   });
 }
 
-// ================= Bootstrap =================
+// ---------- Bootstrap (balance) ----------
 async function bootstrap() {
   const data = await api("/api/bootstrap");
-  document.getElementById("points").innerText = data.points;
-  document.getElementById("frozen").innerText = data.frozen_points;
+  el.points.textContent = data.points;
+  el.frozen.textContent = data.frozen_points;
 }
 
-// ================= Load Tasks =================
+// ---------- Load tasks ----------
 async function loadTasks() {
-  const list = document.getElementById("task-list");
-  list.innerHTML = "جارٍ التحميل...";
+  el.taskList.innerHTML = "جارٍ التحميل...";
 
-  const tasks = await api(`/api/tasks?status=${currentStatus}`);
-  list.innerHTML = "";
+  const tasks = await api(`/api/tasks?status=${encodeURIComponent(currentStatus)}`);
+  el.taskList.innerHTML = "";
 
-  if (!tasks.length) {
-    list.innerHTML = "<p>لا توجد مهمات</p>";
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    el.taskList.innerHTML = "<p>لا توجد مهمات</p>";
     return;
   }
 
   tasks.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "card";
+    const card = document.createElement("div");
+    card.className = "card";
 
-    const deleteBtn =
-      t.status === "pending"
-        ? `<button onclick="deleteTask('${t.task_id}')">حذف المهمة</button>`
+    const failNote =
+      t.status === "failed" && t.fail_reason
+        ? `<p class="fail">سبب الفشل: ${t.fail_reason}</p>`
         : "";
 
-    div.innerHTML = `
-      <h4>${t.fields?.[0] || ""}</h4>
-      <p>${t.fields?.[1] || ""}</p>
-      <small>${(t.dropdowns || []).join(" • ")}</small>
-      ${deleteBtn}
+    // delete available in all tabs
+    card.innerHTML = `
+      <h4>${(t.fields && t.fields[0]) ? t.fields[0] : ""}</h4>
+      <p>${(t.fields && t.fields[1]) ? t.fields[1] : ""}</p>
+      <small>${Array.isArray(t.dropdowns) ? t.dropdowns.join(" • ") : ""}</small>
+      ${failNote}
+      <button data-task-id="${t.task_id}" data-status="${t.status}">حذف المهمة</button>
     `;
 
-    list.appendChild(div);
+    // button handler (no inline onclick to avoid issues)
+    const btn = card.querySelector("button");
+    btn.addEventListener("click", async () => {
+      await deleteTask(btn.dataset.taskId, btn.dataset.status);
+    });
+
+    el.taskList.appendChild(card);
   });
 }
 
-// ================= Delete Task =================
-async function deleteTask(taskId) {
-  if (!confirm("هل أنت متأكد من حذف المهمة؟")) return;
+// ---------- Delete task ----------
+async function deleteTask(taskId, status) {
+  // confirm only for pending
+  if (status === "pending") {
+    const ok = confirm("هل أنت متأكد من حذف المهمة الجارية؟");
+    if (!ok) return;
+  }
 
   await api(`/api/tasks/${taskId}`, { method: "DELETE" });
   await bootstrap();
   await loadTasks();
 }
 
-// ================= Modal =================
-document.getElementById("add-btn").onclick = () => {
-  document.getElementById("modal").classList.remove("hidden");
-};
+// ---------- Modal controls ----------
+el.addBtn.addEventListener("click", () => {
+  el.modal.classList.remove("hidden");
+});
 
-document.getElementById("cancel").onclick = () => {
-  document.getElementById("modal").classList.add("hidden");
-};
+el.cancelBtn.addEventListener("click", () => {
+  el.modal.classList.add("hidden");
+});
 
-// ================= Create Task =================
-document.getElementById("submit").onclick = async () => {
-  const fields = Array.from(
-    document.querySelectorAll('[data-type="field"]')
-  ).map(i => i.value.trim());
+// ---------- Create task ----------
+el.submitBtn.addEventListener("click", async () => {
+  const fields = Array.from(document.querySelectorAll('[data-type="field"]'))
+    .map(i => i.value.trim());
 
-  const dropdowns = Array.from(
-    document.querySelectorAll('[data-type="dropdown"]')
-  ).map(s => s.value);
+  const dropdowns = Array.from(document.querySelectorAll('[data-type="dropdown"]'))
+    .map(s => s.value);
 
   if (fields.some(v => !v)) {
-    alert("يرجى تعبئة جميع الحقول");
+    showNotice("يرجى تعبئة جميع الحقول");
     return;
   }
 
   try {
-    await api("/api/tasks", {
-      method: "POST",
-      body: { fields, dropdowns }
-    });
-
-    document.getElementById("modal").classList.add("hidden");
+    await api("/api/tasks", { method: "POST", body: { fields, dropdowns } });
+    el.modal.classList.add("hidden");
     await bootstrap();
     await loadTasks();
-
-  } catch (err) {
-    // 🔴 تحذير عند عدم توفر نقاط كافية
-    if (err.message.includes("not enough points")) {
-      alert("❌ لا تملك نقاط كافية لإضافة مهمة جديدة");
+  } catch (e) {
+    if ((e.message || "").includes("not enough points")) {
+      showNotice("لا تملك رصيدًا كافيًا لإضافة مهمة جديدة");
     } else {
-      alert("❌ فشل إنشاء المهمة: " + err.message);
+      showNotice("فشل إنشاء المهمة");
     }
   }
-};
-
-// ================= Tabs =================
-document.querySelectorAll(".tabs button").forEach(btn => {
-  btn.onclick = () => {
-    document
-      .querySelectorAll(".tabs button")
-      .forEach(b => b.classList.remove("active"));
-
-    btn.classList.add("active");
-    currentStatus = btn.dataset.status;
-    loadTasks();
-  };
 });
 
-// ================= Init =================
+// ---------- Tabs ----------
+el.tabButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    el.tabButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentStatus = btn.dataset.status;
+    await loadTasks();
+  });
+});
+
+// ---------- Init ----------
 (async function init() {
-  await loadConfig();   // 🔑 هذا هو الذي كان مفقودًا
-  await bootstrap();
-  await loadTasks();
+  try {
+    await loadConfig();
+    await bootstrap();
+    await loadTasks();
+  } catch (e) {
+    console.error(e);
+    showNotice("حدث خطأ في تشغيل الواجهة");
+  }
 })();

@@ -13,7 +13,6 @@
   <div>
     <h1>Task Manager</h1>
 
-    <!-- Balance -->
     <div id="balance">
       <div class="bal">
         <small>الرصيد</small>
@@ -41,17 +40,17 @@
 <div id="modal" class="modal hidden">
   <div class="modal-box">
     <h3>إضافة مهمة جديدة</h3>
-
-    <!-- form is ONLY container -->
-    <form id="task-form" onsubmit="return false;"></form>
+    <form id="task-form"></form>
 
     <div class="actions">
-      <!-- 🔴 مهم: type="button" -->
       <button id="submit" type="button">إنشاء</button>
-      <button id="cancel" type="button" class="secondary">إلغاء</button>
+      <button type="button" class="secondary" id="cancel">إلغاء</button>
     </div>
   </div>
 </div>
+
+<!-- Quiet notice -->
+<div id="notice" class="notice hidden"></div>
 
 <script src="script.js"></script>
 </body>
