@@ -1,8 +1,18 @@
 const tg = Telegram.WebApp;
 tg.ready();
 
-const USER_ID = tg.initDataUnsafe.user.id;
-const API = "https://insipidly-transdesert-noble.ngrok-free.dev"; // بدون /tasks
+if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+  alert("يجب فتح التطبيق من داخل Telegram");
+  throw new Error("No Telegram user");
+}
+
+const USER_ID = Number(tg.initDataUnsafe.user.id);
+const API = "https://insipidly-transdesert-noble.ngrok-free.dev";
+
+console.log("USER_ID:", USER_ID);
+
+
+
 
 let currentStatus = "pending";
 let config = null;
