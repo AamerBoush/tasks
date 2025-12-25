@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Task Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 🔒 تثبيت العرض -->
+  <meta name="viewport"
+        content="width=device-width,
+                 initial-scale=1,
+                 maximum-scale=1,
+                 user-scalable=no">
+
   <link rel="stylesheet" href="style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -14,13 +21,19 @@
     <h1>Task Manager</h1>
 
     <div id="balance">
-      <div class="bal">
+      <div class="bal" id="bal-available">
         <small>الرصيد</small>
-        <span id="points">0</span>
+        <span id="available">0</span>
       </div>
-      <div class="bal frozen">
+
+      <div class="bal frozen hidden" id="bal-frozen">
         <small>المجمد</small>
         <span id="frozen">0</span>
+      </div>
+
+      <div class="bal trial hidden" id="bal-trial">
+        <small>التجربة</small>
+        <span id="trial">0</span>
       </div>
     </div>
   </div>
@@ -44,12 +57,12 @@
 
     <div class="actions">
       <button id="submit" type="button">إنشاء</button>
-      <button type="button" class="secondary" id="cancel">إلغاء</button>
+      <button id="cancel" type="button" class="secondary">إلغاء</button>
     </div>
   </div>
 </div>
 
-<!-- Quiet notice -->
+<!-- إشعار هادئ -->
 <div id="notice" class="notice hidden"></div>
 
 <script src="script.js"></script>

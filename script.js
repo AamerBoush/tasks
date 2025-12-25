@@ -5,28 +5,32 @@ const API = "https://insipidly-transdesert-noble.ngrok-free.dev";
 
 // ---------- DOM ----------
 const el = {
-  points: document.getElementById("points"),
+  available: document.getElementById("available"),
   frozen: document.getElementById("frozen"),
+  trial: document.getElementById("trial"),
+
+  balFrozen: document.getElementById("bal-frozen"),
+  balTrial: document.getElementById("bal-trial"),
+
   taskList: document.getElementById("task-list"),
   modal: document.getElementById("modal"),
   taskForm: document.getElementById("task-form"),
   notice: document.getElementById("notice"),
+
   addBtn: document.getElementById("add-btn"),
   submitBtn: document.getElementById("submit"),
   cancelBtn: document.getElementById("cancel"),
-  tabButtons: Array.from(document.querySelectorAll(".tabs button")),
+
+  tabs: Array.from(document.querySelectorAll(".tabs button"))
 };
 
-// ---------- Helper: quiet notice ----------
-let noticeTimer = null;
-function showNotice(message) {
-  el.notice.textContent = message;
+// ---------- Helper ----------
+function showNotice(msg) {
+  el.notice.textContent = msg;
   el.notice.classList.remove("hidden");
-  if (noticeTimer) clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => el.notice.classList.add("hidden"), 3500);
+  setTimeout(() => el.notice.classList.add("hidden"), 3500);
 }
 
-// ---------- Helper: API ----------
 async function api(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     method: options.method || "GET",
@@ -39,71 +43,47 @@ async function api(path, options = {}) {
   });
 
   const text = await res.text();
-
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch {}
 
-  if (!res.ok) {
-    const msg = data.detail || text || "Request failed";
-    throw new Error(msg);
-  }
+  if (!res.ok) throw new Error(data.detail || text);
   return data;
 }
 
 // ---------- State ----------
-let currentStatus = "pending";
-let formConfig = null;
+let balances = {};
+let currentTab = "pending";
 
-// ---------- Load config & build form ----------
-async function loadConfig() {
-  const res = await fetch("config.json", { cache: "no-store" });
-  if (!res.ok) throw new Error("config.json not found");
-  formConfig = await res.json();
-  buildForm();
-}
-
-function buildForm() {
-  el.taskForm.innerHTML = "";
-
-  // fields (2 inputs)
-  formConfig.form.fields.forEach(f => {
-    const input = document.createElement("input");
-    input.placeholder = f.placeholder;
-    input.dataset.type = "field";
-    el.taskForm.appendChild(input);
-  });
-
-  // dropdowns (4 selects)
-  formConfig.form.dropdowns.forEach(d => {
-    const select = document.createElement("select");
-    select.dataset.type = "dropdown";
-
-    d.options.forEach(opt => {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      select.appendChild(o);
-    });
-
-    el.taskForm.appendChild(select);
-  });
-}
-
-// ---------- Bootstrap (balance) ----------
+// ---------- Bootstrap ----------
 async function bootstrap() {
   const data = await api("/api/bootstrap");
-  el.points.textContent = data.points;
-  el.frozen.textContent = data.frozen_points;
+  balances = data.balances;
+
+  el.available.textContent = balances.available;
+
+  if (balances.frozen > 0) {
+    el.frozen.textContent = balances.frozen;
+    el.balFrozen.classList.remove("hidden");
+  } else {
+    el.balFrozen.classList.add("hidden");
+  }
+
+  if (balances.trial > 0) {
+    el.trial.textContent = balances.trial;
+    el.balTrial.classList.remove("hidden");
+  } else {
+    el.balTrial.classList.add("hidden");
+  }
 }
 
-// ---------- Load tasks ----------
+// ---------- Load Tasks ----------
 async function loadTasks() {
   el.taskList.innerHTML = "جارٍ التحميل...";
 
-  const tasks = await api(`/api/tasks?status=${encodeURIComponent(currentStatus)}`);
+  const tasks = await api(`/api/tasks?execution_status=${currentTab}`);
   el.taskList.innerHTML = "";
 
-  if (!Array.isArray(tasks) || tasks.length === 0) {
+  if (!tasks.length) {
     el.taskList.innerHTML = "<p>لا توجد مهمات</p>";
     return;
   }
@@ -112,58 +92,69 @@ async function loadTasks() {
     const card = document.createElement("div");
     card.className = "card";
 
-    const failNote =
-      t.status === "failed" && t.fail_reason
-        ? `<p class="fail">سبب الفشل: ${t.fail_reason}</p>`
-        : "";
+    // financial note
+    if (t.financial_note) {
+      const fn = document.createElement("div");
+      fn.className = "fin-note";
+      fn.textContent = t.financial_note;
+      card.appendChild(fn);
+    }
 
-    // delete available in all tabs
-    card.innerHTML = `
-      <h4>${(t.fields && t.fields[0]) ? t.fields[0] : ""}</h4>
-      <p>${(t.fields && t.fields[1]) ? t.fields[1] : ""}</p>
-      <small>${Array.isArray(t.dropdowns) ? t.dropdowns.join(" • ") : ""}</small>
-      ${failNote}
-      <button data-task-id="${t.task_id}" data-status="${t.status}">حذف المهمة</button>
-    `;
+    // status text (only in pending tab)
+    if (currentTab === "pending") {
+      const st = document.createElement("div");
+      st.className = "status-text";
 
-    // button handler (no inline onclick to avoid issues)
-    const btn = card.querySelector("button");
-    btn.addEventListener("click", async () => {
-      await deleteTask(btn.dataset.taskId, btn.dataset.status);
+      st.textContent =
+        t.status === "pending"   ? "جارٍ النشر" :
+        t.status === "completed" ? "قيد الإنجاز" :
+                                   "مرفوضة";
+
+      card.appendChild(st);
+    }
+
+    // fields
+    t.fields.forEach(f => {
+      const line = document.createElement("div");
+      line.className = "line";
+      line.textContent = f;
+      card.appendChild(line);
     });
 
+    // dropdowns
+    t.dropdowns.forEach(d => {
+      const line = document.createElement("div");
+      line.className = "line";
+      line.textContent = d;
+      card.appendChild(line);
+    });
+
+    // delete button
+    const btn = document.createElement("button");
+    btn.textContent = "حذف المهمة";
+    btn.onclick = async () => {
+      if (currentTab === "pending") {
+        if (!confirm("هل أنت متأكد من حذف المهمة؟")) return;
+      }
+      await api(`/api/tasks/${t._id}`, { method: "DELETE" });
+      await loadTasks();
+    };
+
+    card.appendChild(btn);
     el.taskList.appendChild(card);
   });
 }
 
-// ---------- Delete task ----------
-async function deleteTask(taskId, status) {
-  // confirm only for pending
-  if (status === "pending") {
-    const ok = confirm("هل أنت متأكد من حذف المهمة الجارية؟");
-    if (!ok) return;
-  }
+// ---------- Modal ----------
+el.addBtn.onclick = () => el.modal.classList.remove("hidden");
+el.cancelBtn.onclick = () => el.modal.classList.add("hidden");
 
-  await api(`/api/tasks/${taskId}`, { method: "DELETE" });
-  await bootstrap();
-  await loadTasks();
-}
-
-// ---------- Modal controls ----------
-el.addBtn.addEventListener("click", () => {
-  el.modal.classList.remove("hidden");
-});
-
-el.cancelBtn.addEventListener("click", () => {
-  el.modal.classList.add("hidden");
-});
-
-// ---------- Create task ----------
-el.submitBtn.addEventListener("click", async () => {
-  const fields = Array.from(document.querySelectorAll('[data-type="field"]'))
+// ---------- Create Task ----------
+el.submitBtn.onclick = async () => {
+  const fields = Array.from(el.taskForm.querySelectorAll('[data-type="field"]'))
     .map(i => i.value.trim());
 
-  const dropdowns = Array.from(document.querySelectorAll('[data-type="dropdown"]'))
+  const dropdowns = Array.from(el.taskForm.querySelectorAll('[data-type="dropdown"]'))
     .map(s => s.value);
 
   if (fields.some(v => !v)) {
@@ -171,38 +162,36 @@ el.submitBtn.addEventListener("click", async () => {
     return;
   }
 
-  try {
-    await api("/api/tasks", { method: "POST", body: { fields, dropdowns } });
-    el.modal.classList.add("hidden");
-    await bootstrap();
-    await loadTasks();
-  } catch (e) {
-    if ((e.message || "").includes("not enough points")) {
-      showNotice("لا تملك رصيدًا كافيًا لإضافة مهمة جديدة");
-    } else {
-      showNotice("فشل إنشاء المهمة");
-    }
+  let source = null;
+  if (balances.available >= 12) source = "available";
+  else if (balances.trial >= 12) source = "trial";
+
+  if (!source) {
+    showNotice("لا يوجد رصيد كافٍ لإضافة مهمة");
+    return;
   }
-});
+
+  await api("/api/tasks", {
+    method: "POST",
+    body: { fields, dropdowns, balance_source: source }
+  });
+
+  el.modal.classList.add("hidden");
+  await loadTasks();
+};
 
 // ---------- Tabs ----------
-el.tabButtons.forEach(btn => {
-  btn.addEventListener("click", async () => {
-    el.tabButtons.forEach(b => b.classList.remove("active"));
+el.tabs.forEach(btn => {
+  btn.onclick = async () => {
+    el.tabs.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    currentStatus = btn.dataset.status;
+    currentTab = btn.dataset.status;
     await loadTasks();
-  });
+  };
 });
 
 // ---------- Init ----------
 (async function init() {
-  try {
-    await loadConfig();
-    await bootstrap();
-    await loadTasks();
-  } catch (e) {
-    console.error(e);
-    showNotice("حدث خطأ في تشغيل الواجهة");
-  }
+  await bootstrap();
+  await loadTasks();
 })();

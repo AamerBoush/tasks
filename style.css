@@ -7,7 +7,15 @@
   --radius: 18px;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;   /* 🔒 منع الانزلاق */
+}
 
 body {
   margin: 0;
@@ -16,11 +24,13 @@ body {
   color: var(--text);
 }
 
+/* ===== Header ===== */
+
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px;
+  padding: 16px;
   background: linear-gradient(135deg, #6366f1, #818cf8);
   color: white;
   border-bottom-left-radius: var(--radius);
@@ -33,26 +43,25 @@ header {
   margin-top: 6px;
 }
 
-#balance .bal {
+.bal {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
 }
 
-#balance .bal small {
+.bal small {
   font-size: 11px;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-#balance .bal span {
+.bal span {
   font-size: 15px;
   font-weight: 700;
   color: #22c55e;
 }
 
-#balance .bal.frozen span {
-  color: #f59e0b;
-}
+.bal.frozen span { color: #f59e0b; }
+.bal.trial span  { color: #0ea5e9; }
 
 #add-btn {
   padding: 10px 14px;
@@ -63,6 +72,8 @@ header {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ===== Tabs ===== */
 
 .tabs {
   display: flex;
@@ -86,11 +97,16 @@ header {
   color: white;
 }
 
+/* ===== Main ===== */
+
 main {
   padding: 12px;
 }
 
+/* ===== Card ===== */
+
 .card {
+  position: relative;
   background: var(--card);
   border-radius: var(--radius);
   padding: 14px;
@@ -98,22 +114,24 @@ main {
   box-shadow: 0 6px 18px rgba(0,0,0,.06);
 }
 
-.card h4 {
-  margin: 0 0 6px 0;
+.fin-note {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 11px;
+  color: #2563eb;
+  opacity: 0.85;
 }
 
-.card p {
-  margin: 0 0 8px 0;
+.status-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
 }
 
-.card small {
-  color: var(--muted);
-}
-
-.fail {
-  color: #dc2626;
-  font-weight: 600;
-  margin-top: 10px;
+.card .line {
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 
 .card button {
@@ -126,6 +144,8 @@ main {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ===== Modal ===== */
 
 .modal {
   position: fixed;
@@ -158,6 +178,8 @@ input, select {
   border: 1px solid #e5e7eb;
 }
 
+/* ===== Actions ===== */
+
 .actions {
   display: flex;
   gap: 10px;
@@ -176,7 +198,8 @@ input, select {
   background: #e5e7eb;
 }
 
-/* Quiet notice */
+/* ===== Notice ===== */
+
 .notice {
   position: fixed;
   bottom: 12px;
@@ -189,4 +212,3 @@ input, select {
   font-size: 13px;
   box-shadow: 0 6px 20px rgba(0,0,0,.08);
 }
-.notice.hidden { display: none; }
