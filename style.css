@@ -212,3 +212,14 @@ input, select {
   font-size: 13px;
   box-shadow: 0 6px 20px rgba(0,0,0,.08);
 }
+/* ===== To Delete State ===== */
+.card.deleting {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.deleting-badge {
+  font-size: 12px;
+  color: #ca8a04;
+  margin-bottom: 6px;
+}
