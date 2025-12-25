@@ -24,11 +24,13 @@ const el = {
   tabs: Array.from(document.querySelectorAll(".tabs button"))
 };
 
-// ---------- Helper ----------
+// ---------- Helpers ----------
+let noticeTimer = null;
 function showNotice(msg) {
   el.notice.textContent = msg;
   el.notice.classList.remove("hidden");
-  setTimeout(() => el.notice.classList.add("hidden"), 3500);
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => el.notice.classList.add("hidden"), 3500);
 }
 
 async function api(path, options = {}) {
@@ -46,29 +48,73 @@ async function api(path, options = {}) {
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch {}
 
-  if (!res.ok) throw new Error(data.detail || text);
+  if (!res.ok) throw new Error(data.detail || text || "Request failed");
   return data;
 }
 
 // ---------- State ----------
-let balances = {};
+let balances = { available: 0, frozen: 0, trial: 0 };
+let TASK_COST = 12;
 let currentTab = "pending";
+let formConfig = null;
+
+// ---------- Load Config + Build Form ----------
+async function loadConfig() {
+  // مهم: config.json لازم يكون بجانب index.html
+  const res = await fetch("config.json", { cache: "no-store" });
+  if (!res.ok) throw new Error("config.json not found (ضعه بجانب index.html)");
+  formConfig = await res.json();
+  buildForm();
+}
+
+function buildForm() {
+  if (!formConfig?.form) {
+    showNotice("config.json غير صحيح");
+    return;
+  }
+
+  el.taskForm.innerHTML = "";
+
+  // Inputs (2)
+  (formConfig.form.fields || []).forEach(f => {
+    const input = document.createElement("input");
+    input.placeholder = f.placeholder || "";
+    input.dataset.type = "field";
+    el.taskForm.appendChild(input);
+  });
+
+  // Dropdowns (4)
+  (formConfig.form.dropdowns || []).forEach(d => {
+    const select = document.createElement("select");
+    select.dataset.type = "dropdown";
+
+    (d.options || []).forEach(opt => {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      select.appendChild(o);
+    });
+
+    el.taskForm.appendChild(select);
+  });
+}
 
 // ---------- Bootstrap ----------
 async function bootstrap() {
   const data = await api("/api/bootstrap");
-  balances = data.balances;
+  balances = data.balances || balances;
+  TASK_COST = Number(data.task_cost || 12);
 
-  el.available.textContent = balances.available;
+  el.available.textContent = balances.available ?? 0;
 
-  if (balances.frozen > 0) {
+  if ((balances.frozen ?? 0) > 0) {
     el.frozen.textContent = balances.frozen;
     el.balFrozen.classList.remove("hidden");
   } else {
     el.balFrozen.classList.add("hidden");
   }
 
-  if (balances.trial > 0) {
+  if ((balances.trial ?? 0) > 0) {
     el.trial.textContent = balances.trial;
     el.balTrial.classList.remove("hidden");
   } else {
@@ -80,10 +126,10 @@ async function bootstrap() {
 async function loadTasks() {
   el.taskList.innerHTML = "جارٍ التحميل...";
 
-  const tasks = await api(`/api/tasks?execution_status=${currentTab}`);
+  const tasks = await api(`/api/tasks?execution_status=${encodeURIComponent(currentTab)}`);
   el.taskList.innerHTML = "";
 
-  if (!tasks.length) {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
     el.taskList.innerHTML = "<p>لا توجد مهمات</p>";
     return;
   }
@@ -92,7 +138,7 @@ async function loadTasks() {
     const card = document.createElement("div");
     card.className = "card";
 
-    // financial note
+    // financial note top-right
     if (t.financial_note) {
       const fn = document.createElement("div");
       fn.className = "fin-note";
@@ -100,42 +146,41 @@ async function loadTasks() {
       card.appendChild(fn);
     }
 
-    // status text (only in pending tab)
+    // status text only in pending tab
     if (currentTab === "pending") {
       const st = document.createElement("div");
       st.className = "status-text";
-
       st.textContent =
-        t.status === "pending"   ? "جارٍ النشر" :
+        t.status === "pending" ? "جارٍ النشر" :
         t.status === "completed" ? "قيد الإنجاز" :
-                                   "مرفوضة";
-
+        "مرفوضة";
       card.appendChild(st);
     }
 
-    // fields
-    t.fields.forEach(f => {
+    // fields lines
+    (t.fields || []).forEach(v => {
       const line = document.createElement("div");
       line.className = "line";
-      line.textContent = f;
+      line.textContent = v;
       card.appendChild(line);
     });
 
-    // dropdowns
-    t.dropdowns.forEach(d => {
+    // dropdown lines
+    (t.dropdowns || []).forEach(v => {
       const line = document.createElement("div");
       line.className = "line";
-      line.textContent = d;
+      line.textContent = v;
       card.appendChild(line);
     });
 
-    // delete button
+    // delete button (confirm only in pending tab)
     const btn = document.createElement("button");
     btn.textContent = "حذف المهمة";
     btn.onclick = async () => {
       if (currentTab === "pending") {
         if (!confirm("هل أنت متأكد من حذف المهمة؟")) return;
       }
+      // ملاحظة: يحتاج backend delete endpoint /api/tasks/{id}
       await api(`/api/tasks/${t._id}`, { method: "DELETE" });
       await loadTasks();
     };
@@ -162,22 +207,28 @@ el.submitBtn.onclick = async () => {
     return;
   }
 
+  // ✅ available أولاً ثم trial (بدون جمع)
   let source = null;
-  if (balances.available >= 12) source = "available";
-  else if (balances.trial >= 12) source = "trial";
+  if ((balances.available ?? 0) >= TASK_COST) source = "available";
+  else if ((balances.trial ?? 0) >= TASK_COST) source = "trial";
 
   if (!source) {
     showNotice("لا يوجد رصيد كافٍ لإضافة مهمة");
     return;
   }
 
-  await api("/api/tasks", {
-    method: "POST",
-    body: { fields, dropdowns, balance_source: source }
-  });
+  try {
+    await api("/api/tasks", {
+      method: "POST",
+      body: { fields, dropdowns, balance_source: source }
+    });
 
-  el.modal.classList.add("hidden");
-  await loadTasks();
+    el.modal.classList.add("hidden");
+    await loadTasks();
+
+  } catch (e) {
+    showNotice("فشل إنشاء المهمة");
+  }
 };
 
 // ---------- Tabs ----------
@@ -192,6 +243,12 @@ el.tabs.forEach(btn => {
 
 // ---------- Init ----------
 (async function init() {
-  await bootstrap();
-  await loadTasks();
+  try {
+    await loadConfig();   // ✅ هذا كان ناقص
+    await bootstrap();
+    await loadTasks();
+  } catch (e) {
+    console.error(e);
+    showNotice("خطأ: تأكد أن config.json موجود بجانب index.html");
+  }
 })();
